@@ -1,11 +1,11 @@
-## Notas
+## Citas medicas
 
-Una aplicacion web construida con Vite+React y MySQL con acciones REST y autenticacion/proteccion de endpoints donde podran crearse 3 tipos de usuarios desde el administrador, el profesor, y los estudiantes y cada uno tendra una pagina para visualizar los datos que necesitan utilizar.
+Una aplicacion web construida con Vite+React y MySQL con acciones REST y autenticacion/proteccion de endpoints donde podran crearse 3 tipos de usuarios desde el administrador, el paciente, y los doctores y cada uno tendra una pagina para visualizar los datos que necesitan utilizar.
 
 
 ## Table of Contents
 
-- [Proyecto de Notas](#notas)
+- [Proyecto de Citas medicas](#notas)
   - [Table of Contents](#table-of-contents)
   - [About](#about)
   - [Features](#features)
@@ -16,11 +16,11 @@ Una aplicacion web construida con Vite+React y MySQL con acciones REST y autenti
 
 ## About
 
-El proposito de la aplicacion web es para que los estudiantes puedan revisar sus calificaciones de sus trabajos y examenes recientes actualizados por sus profesores.
+El proposito de la aplicacion web es para que los pacientes puedan hacer chequeo de sus citas agendadas.
 
-Y los profesores podran seleccionar a sus estudiantes y colocar los resultados de sus notas.
+Y los doctores podran hacer cambios en las citas de los pacientes.
 
-Y un panel de administracion donde podemos agregar credenciales nuevas para estudiantes y profesores nuevos.
+Y un panel de administracion donde podemos agregar credenciales nuevas para doctores y pacientes nuevos.
 
 ## Features
 
