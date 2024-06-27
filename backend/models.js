@@ -38,9 +38,9 @@ const Appointment = sequelize.define('Appointment', {
     type: DataTypes.DATE,
     allowNull: false
   },
-  type: {
+  room: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   },
   doctorId: {
     type: DataTypes.INTEGER,

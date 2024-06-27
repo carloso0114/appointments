@@ -4,32 +4,35 @@ import authenticateJWT from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// CREATE a new appointment
 router.post('/', authenticateJWT, async (req, res) => {
-  const { dateTime, type, room, patientId, doctorId } = req.body;
-  const { id, role } = req.user;
-  // Validate role
-  if ( role=== 'paciente' ) {
-    return res.status(403).json({ message: 'Pacientes can not create appointments' });
-  }
+  const { dateTime, patientId, doctorId } = req.body;
 
-  // If the user is a doctor, ensure they can only create appointments for themselves
-  if (role === 'doctor' && doctorId !== id) {
-    return res.status(403).json({ message: 'Doctors can only create appointments for themselves' });
-  }
+  // Extract the authenticated user ID from the JWT token
+  const authenticatedUserId = req.user.id;
 
   try {
-    // Check if the patient exists
-    const patient = await User.findByPk(patientId);
-    if (!patient) {
-      return res.status(404).json({ message: 'Patient not found' });
+    // Fetch the authenticated user details
+    const authenticatedUser = await User.findByPk(authenticatedUserId);
+
+    // Check if the authenticated user is an admin
+    if (authenticatedUser.role !== 'admin' && patientId !== authenticatedUserId) {
+      return res.status(403).json({ error: 'Unauthorized to create appointment for another patient' });
+    }
+
+    // Verify if the doctorId exists in the User table
+    const doctor = await User.findOne({ where: { id: doctorId, role: 'doctor' } });
+    if (!doctor) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    const paciente = await User.findOne({ where: { id: patientId, role: 'paciente' } });
+    if (!paciente) {
+      return res.status(404).json({ error: 'Paciente not found' });
     }
 
     // Create the appointment
     const newAppointment = await Appointment.create({
       dateTime,
-      type,
-      room,
       patientId,
       doctorId,
     });
@@ -46,12 +49,13 @@ router.get('/doctor/:doctorId', authenticateJWT, async (req, res) => {
   const { doctorId } = req.params;
   const { id, role } = req.user;
 
-  // Ensure only doctors and admins can access this endpoint
-  if (role === 'paciente') {
-    return res.status(403).json({ message: 'Patients are not allowed to check on doctors appointments' });
-  }
-
   try {
+    // Verify if the doctorId exists and has a room number
+    const doctor = await User.findOne({ where: { id: doctorId, role: 'doctor' } });
+    if (!doctor) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
     // Find appointments where the doctorId matches
     const appointments = await Appointment.findAll({
       where: { doctorId },
@@ -66,13 +70,14 @@ router.get('/doctor/:doctorId', authenticateJWT, async (req, res) => {
     if (!appointments || appointments.length === 0) {
       return res.status(200).json([]);
     }
-
-    // Format appointments to include patient's username
+    
+    // Format appointments to include patient's username and doctor's room
     const formattedAppointments = appointments.map(appointment => ({
       id: appointment.id,
       dateTime: appointment.dateTime, // Adjust as per your appointment model
       type: appointment.type,
-      room: appointment.room,
+      area: doctor.area,
+      room: doctor.room,
       patientId: appointment.patientId,
       patientName: appointment.Patient.username // Extract username from included Patient
     }));

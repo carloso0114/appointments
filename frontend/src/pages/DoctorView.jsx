@@ -61,9 +61,7 @@ function DoctorView() {
               <th className={styles.th}>Patient Name</th>
               <th className={styles.th}>Date</th>
               <th className={styles.th}>Time</th>
-              <th className={styles.th}>Type</th>
               <th className={styles.th}>Room</th>
-              <th className={styles.th}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -75,12 +73,7 @@ function DoctorView() {
                 <td className={styles.td}>{appointment.patientName}</td>
                 <td className={styles.td}>{new Date(appointment.dateTime).toLocaleDateString()}</td>
                 <td className={styles.td}>{new Date(appointment.dateTime).toLocaleTimeString()}</td>
-                <td className={styles.td}>{appointment.type}</td>
                 <td className={styles.td}>{appointment.room}</td>
-                <td className={styles.td}>
-                  <button onClick={() => handleEdit(appointment)}>Edit</button>
-                  <button onClick={() => handleDeleteAppointment(appointment.id)}>Delete</button>
-                </td>
               </tr>
             ))}
           </tbody>
