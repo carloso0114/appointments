@@ -63,7 +63,7 @@ userRoutes.get('/:id', authenticateJWT, async (req, res) => {
 
 // CREATE a new user
 userRoutes.post('/', authenticateJWT, async (req, res) => {
-  const { username, role, password } = req.body;
+  const { username, role, password, room, area } = req.body;
   const user_role = req.user.role;
 
   if (user_role === 'paciente' || user_role === 'doctor') {
@@ -79,6 +79,8 @@ userRoutes.post('/', authenticateJWT, async (req, res) => {
       username,
       role,
       password,
+      room, 
+      area
     });
     res.status(201).json(newUser);
   } catch (error) {
