@@ -64,7 +64,7 @@ router.get('/doctor/:doctorId', authenticateJWT, async (req, res) => {
 
     // If no appointments found, return 404
     if (!appointments || appointments.length === 0) {
-      return res.status(404).json({ message: 'No appointments found for this doctor' });
+      return res.status(200).json([]);
     }
 
     // Format appointments to include patient's username
