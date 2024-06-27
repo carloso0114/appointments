@@ -15,6 +15,14 @@ const User = sequelize.define('User', {
   role: {
     type: DataTypes.ENUM('doctor', 'paciente', 'admin'),
     allowNull: false
+  },
+  area: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  room: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 });
 
@@ -31,10 +39,6 @@ const Appointment = sequelize.define('Appointment', {
     allowNull: false
   },
   type: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  room: {
     type: DataTypes.STRING,
     allowNull: false
   },

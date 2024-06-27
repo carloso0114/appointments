@@ -62,7 +62,7 @@ router.get('/doctor/:doctorId', authenticateJWT, async (req, res) => {
       }]
     });
 
-    // If no appointments found, return 404
+    // If no appointments found return empty array
     if (!appointments || appointments.length === 0) {
       return res.status(200).json([]);
     }
