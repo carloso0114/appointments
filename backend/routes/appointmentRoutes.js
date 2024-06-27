@@ -1,4 +1,5 @@
 import express from 'express';
+import { Op } from 'sequelize';
 import { User, Appointment } from '../models.js';
 import authenticateJWT from '../middlewares/auth.js';
 
@@ -28,6 +29,30 @@ router.post('/', authenticateJWT, async (req, res) => {
     const paciente = await User.findOne({ where: { id: patientId, role: 'paciente' } });
     if (!paciente) {
       return res.status(404).json({ error: 'Paciente not found' });
+    }
+
+    // Convert dateTime to a Date object for comparison
+    const newAppointmentDateTime = new Date(dateTime);
+
+    // Calculate the 30-minute window before and after the desired appointment time
+    const startWindow = new Date(newAppointmentDateTime.getTime() - 30 * 60 * 1000);
+    const endWindow = new Date(newAppointmentDateTime.getTime() + 30 * 60 * 1000);
+
+    // Check for overlapping appointments for the doctor and patient within the 30-minute window
+    const overlappingAppointments = await Appointment.findAll({
+      where: {
+        [Op.or]: [
+          { doctorId },
+          { patientId }
+        ],
+        dateTime: {
+          [Op.between]: [startWindow, endWindow]
+        }
+      }
+    });
+
+    if (overlappingAppointments.length > 0) {
+      return res.status(400).json({ error: 'An appointment already exists within 30 minutes of the requested time.' });
     }
 
     // Create the appointment

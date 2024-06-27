@@ -5,34 +5,47 @@ import styles from './PacienteView.module.css'; // Import your CSS module
 
 function PacienteView() {
   const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]); // State to store list of doctors
   const [error, setError] = useState('');
   const [newAppointment, setNewAppointment] = useState({ dateTime: '', doctorId: '' });
   const [updateAppointment, setUpdateAppointment] = useState({ id: '', dateTime: '' });
   const [isUpdating, setIsUpdating] = useState(false); // State to manage which form to display
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
-      if (token) {
-        const decoded = decodeToken(token);
-        const patientId = decoded.id; // Assuming patientId is decoded from token, adjust as necessary
-        try {
-          const response = await axiosInstance.get(`/appointments/patient/${patientId}`);
-          if (response.data.message) {
-            setError(response.data.message);
-          } else {
-            setAppointments(response.data);
-          }
-        } catch (error) {
-          console.error('Error fetching appointments:', error);
-          setError('Failed to fetch appointments. Please try again.');
+  const fetchAppointments = async () => {
+    const token = localStorage.getItem('token'); // Assuming token is stored in localStorage
+    if (token) {
+      const decoded = decodeToken(token);
+      const patientId = decoded.id; // Assuming patientId is decoded from token, adjust as necessary
+      try {
+        const response = await axiosInstance.get(`/appointments/patient/${patientId}`);
+        if (response.data.message) {
+          setError(response.data.message);
+        } else {
+          setAppointments(response.data);
         }
-      } else {
-        setError('No token found');
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+        setError('Failed to fetch appointments. Please try again.');
+      }
+    } else {
+      setError('No token found');
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments()
+    const fetchDoctors = async () => {
+      try {
+        const response = await axiosInstance.get('/users/doctors');
+        setDoctors(response.data);
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+        setError('Failed to fetch doctors. Please try again.');
       }
     };
 
     fetchAppointments();
+    fetchDoctors();
   }, []);
 
   const deleteAppointment = async (appointmentId) => {
@@ -55,8 +68,7 @@ function PacienteView() {
       setAppointments([...appointments, response.data]);
       setNewAppointment({ dateTime: '', doctorId: '' });
     } catch (error) {
-      console.error('Error creating appointment:', error);
-      setError('Failed to create appointment. Please try again.');
+      setError(error.response.data.error);
     }
   };
 
@@ -64,9 +76,9 @@ function PacienteView() {
     e.preventDefault();
     try {
       const response = await axiosInstance.patch(`/appointments/${updateAppointment.id}`, { dateTime: updateAppointment.dateTime });
-      setAppointments(appointments.map(app => app.id === updateAppointment.id ? response.data : app));
       setUpdateAppointment({ id: '', dateTime: '' });
       setIsUpdating(false); // Reset to show the create form
+      fetchAppointments()
     } catch (error) {
       console.error('Error updating appointment:', error);
       setError('Failed to update appointment. Please try again.');
@@ -113,11 +125,11 @@ function PacienteView() {
                 <td className={styles.td}>{appointment.room}</td>
                 <td className={styles.td}>{appointment.doctorUsername}</td>
                 <td className={styles.td}>
-                  <button onClick={() => deleteAppointment(appointment.id)}>Delete</button>
                   <button onClick={() => {
                     setUpdateAppointment({ id: appointment.id, dateTime: appointment.dateTime });
                     setIsUpdating(true);
                   }}>Update</button>
+                  <button onClick={() => deleteAppointment(appointment.id)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -136,13 +148,18 @@ function PacienteView() {
               onChange={(e) => setNewAppointment({ ...newAppointment, dateTime: e.target.value })}
               required
             />
-            <input
-              type="text"
+            <select
               value={newAppointment.doctorId}
               onChange={(e) => setNewAppointment({ ...newAppointment, doctorId: e.target.value })}
-              placeholder="Doctor ID"
               required
-            />
+            >
+              <option value="">Select Doctor</option>
+              {doctors.map(doctor => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.username}
+                </option>
+              ))}
+            </select>
             <button type="submit">Create Appointment</button>
           </form>
         </div>
