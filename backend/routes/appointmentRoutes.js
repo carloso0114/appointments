@@ -70,7 +70,7 @@ router.get('/doctor/:doctorId', authenticateJWT, async (req, res) => {
     if (!appointments || appointments.length === 0) {
       return res.status(200).json([]);
     }
-    
+
     // Format appointments to include patient's username and doctor's room
     const formattedAppointments = appointments.map(appointment => ({
       id: appointment.id,
@@ -92,21 +92,31 @@ router.get('/doctor/:doctorId', authenticateJWT, async (req, res) => {
 // Get all appointments for a patient, including doctor's username
 router.get('/patient/:patientId', authenticateJWT, async (req, res) => {
   const { patientId } = req.params;
-  const { id: tokenUserId } = req.user;
+  const authenticatedUserId = req.user.id;
 
-  if (parseInt(patientId, 10) !== tokenUserId) {
-    return res.status(403).json({ message: 'You can only access your own appointment information' });
-  }
-
+  // Extract the authenticated user ID from the JWT token
   try {
-    const patient = await User.findByPk(patientId, { 
+    // Fetch the authenticated user details
+    const authenticatedUser = await User.findByPk(authenticatedUserId);
+
+    // Check if the authenticated user is an admin
+    if (authenticatedUser.role !== 'admin' && parseInt(patientId) !== authenticatedUserId) {
+      return res.status(403).json({ error: 'You can only access your own appointment information' });
+    }
+
+    const paciente = await User.findOne({ where: { id: patientId, role: 'paciente' } });
+    if (!paciente) {
+      return res.status(404).json({ error: 'Paciente not found' });
+    }
+
+    const patient = await User.findByPk(patientId, {
       include: [
-        { 
-          model: Appointment, 
-          as: 'PatientAppointments', 
-          include: [{ model: User, as: 'Doctor', attributes: ['username'] }] // Include doctor's username
+        {
+          model: Appointment,
+          as: 'PatientAppointments',
+          include: [{ model: User, as: 'Doctor', attributes: ['username', 'area', 'room'] }] // Include doctor's username
         }
-      ] 
+      ]
     });
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -115,8 +125,8 @@ router.get('/patient/:patientId', authenticateJWT, async (req, res) => {
     const appointments = patient.PatientAppointments.map(appointment => ({
       id: appointment.id,
       dateTime: appointment.dateTime,
-      type: appointment.type,
-      room: appointment.room,
+      type: appointment.Doctor.area,
+      room: appointment.Doctor.room,
       doctorUsername: appointment.Doctor.username // Access doctor's username
     }));
 
@@ -130,28 +140,28 @@ router.get('/patient/:patientId', authenticateJWT, async (req, res) => {
 // PATCH (partial update) an appointment
 router.patch('/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  const { dateTime, type, room, doctorId, patientId } = req.body;
-  const { role } = req.user;
-
-  // If user is a patient
-  if (role === 'paciente') {
-    return res.status(403).json({ message: 'Patients are not allowed to update appointments' });
-  }
-
-  // Validate required fields
-  if (!(dateTime || type || room || doctorId || patientId)) {
-    return res.status(400).json({ error: 'At least one field (dateTime, type, room, doctorId, patientId) must be provided' });
-  }
+  const { dateTime } = req.body;
+  const { id: userId, role } = req.user;
 
   try {
     const appointment = await Appointment.findByPk(id);
     if (appointment) {
-      // Update appointment if at least one field is provided
-      if (dateTime !== undefined) appointment.dateTime = dateTime;
-      if (type !== undefined) appointment.type = type;
-      if (room !== undefined) appointment.room = room;
-      if (doctorId !== undefined) appointment.doctorId = doctorId;
-      if (patientId !== undefined) appointment.patientId = patientId;
+      // Ensure that only the patient who owns the appointment or an admin can update it
+      if (appointment.patientId !== userId && role !== 'admin') {
+        return res.status(403).json({ error: 'Unauthorized to update this appointment' });
+      }
+
+      // Validate that dateTime is greater than the current time
+      if (dateTime !== undefined) {
+        const newDateTime = new Date(dateTime);
+        const currentDateTime = new Date();
+
+        if (newDateTime <= currentDateTime) {
+          return res.status(400).json({ error: 'The date and time must be in the future' });
+        }
+
+        appointment.dateTime = newDateTime;
+      }
 
       await appointment.save();
 
@@ -168,17 +178,17 @@ router.patch('/:id', authenticateJWT, async (req, res) => {
 // DELETE an appointment by ID
 router.delete('/:id', authenticateJWT, async (req, res) => {
   const { id } = req.params;
-  const { role } = req.user;
-
-  // Check user role
-  if (role === 'paciente') {
-    return res.status(403).json({ message: 'Patients are not allowed to delete appointments' });
-  }
+  const { id: userId, role } = req.user;
 
   try {
     const appointment = await Appointment.findByPk(id);
     if (!appointment) {
       return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    // Ensure that only the patient who owns the appointment or an admin can delete it
+    if (appointment.patientId !== userId && role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized to delete this appointment' });
     }
 
     await appointment.destroy();

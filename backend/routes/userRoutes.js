@@ -21,22 +21,19 @@ userRoutes.get('/', authenticateJWT, async (req, res) => {
   }
 });
 
-// GET all students so we can list them in the form in front-end
-userRoutes.get('/patients', authenticateJWT, async (req, res) => {
+// Get all doctors to list them in front form
+userRoutes.get('/doctors', authenticateJWT, async (req, res) => {
   const { role } = req.user;
 
-  if (role === 'paciente') {
-    return res.status(403).json({ message: 'You are not allowed to check on this action' });
-  }
   try {
     const students = await User.findAll({
-      where: { role: 'paciente' },
+      where: { role: 'doctor' },
       attributes: ['id', 'username']
     });
     res.json(students);
   } catch (error) {
-    console.error('Error fetching students:', error);
-    res.status(500).json({ error: 'Failed to fetch students' });
+    console.error('Error fetching doctors:', error);
+    res.status(500).json({ error: 'Failed to fetch doctors' });
   }
 });
 
